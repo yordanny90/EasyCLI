@@ -4,8 +4,6 @@
  * @class EasyCLI
  */
 class EasyCLI{
-	static protected $tmpdir;
-
 	protected $cmd;
 	protected $cwd;
 	protected $env;
@@ -101,15 +99,27 @@ class EasyCLI{
 	public function open($outBuffer=null, $errBuffer=null, bool $inBuffer=false){
 		$desc_spec=[];
 		$desc_spec[0]=$inBuffer?["pipe", "r"]:['file', self::fileNULL(), 'r'];
-        $desc_spec[1]=self::toPipe($outBuffer);
-        $desc_spec[2]=self::toPipe($errBuffer);
+        $desc_spec[1]=self::toPipe($outBuffer, $outClose);
+        $desc_spec[2]=self::toPipe($errBuffer, $errClose);
         if($desc_spec[1]===null) unset($desc_spec[1]);
         if($desc_spec[2]===null) unset($desc_spec[2]);
 		$proc=\EasyCLI\Proc::start($this->cmd, $desc_spec, $this->cwd, $this->env, $this->options);
+        if($proc){
+            if(!$inBuffer) $proc->in_close();
+            if($outClose) $proc->out_unset();
+            if($errClose) $proc->err_unset();
+        }
 		return $proc;
 	}
 
-    private static function toPipe($desc_spec){
+    /**
+     * @var int Memoria máxima usada por los archivos temporales
+     * Default: 65536 (64KB)
+     */
+    public static $maxMemory=65536;
+
+    private static function toPipe($desc_spec, &$isNull=null){
+        $isNull=false;
         if(is_array($desc_spec)){
             return $desc_spec;
         }
@@ -117,7 +127,7 @@ class EasyCLI{
             return $desc_spec;
         }
         elseif($desc_spec==='temp' || $desc_spec==='tmp'){
-            return fopen('php://temp', 'r')?:null;
+            return fopen('php://temp/maxmemory:'.self::$maxMemory, 'r')?:null;
         }
         elseif($desc_spec==='output'){
             return null;
@@ -131,6 +141,7 @@ class EasyCLI{
             ])){
             return ["file", $desc_spec, "w"];
         }
+        $isNull=true;
         return ["file", self::fileNULL(), "w"];
     }
 
@@ -143,6 +154,10 @@ class EasyCLI{
         }
         else{
             self::$filenul="/dev/null";
+        }
+        // Valida si tiene permisos para la lectura/escritura de /dev/null
+        if(!fopen(self::$filenul, 'r')){
+            self::$filenul='php://temp/maxmemory:'.self::$maxMemory;
         }
         return self::$filenul;
     }
