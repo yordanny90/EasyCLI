@@ -150,6 +150,14 @@ class Proc{
         if(isset($this->in)) fclose($this->in) && ($this->in=null);
     }
 
+    public function out_unset(){
+        if(isset($this->out)) $this->out=null;
+    }
+
+    public function err_unset(){
+        if(isset($this->err)) $this->err=null;
+    }
+
     public function out_read(){
         if(empty($this->out)) return false;
         ob_start();
