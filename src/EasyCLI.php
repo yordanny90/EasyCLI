@@ -260,10 +260,27 @@ class EasyCLI{
             $out=$proc->out_read();
             $proc->close();
             $out=trim($out);
-            if(preg_match('/\n'.$pid.'\s+((?:.|\n)+)$/', $out, $m)){
+            if(preg_match('/\n\s*'.$pid.'\s+((?:.|\n)+)$/', $out, $m)){
                 return trim($m[1]);
             }
             return null;
+        }
+        else{
+            return null;
+        }
+    }
+
+    public static function proc_terminate(int $pid, bool $kill=false){
+        if(function_exists('posix_kill')){
+            return posix_kill($pid, $kill?SIGKILL:SIGTERM);
+        }
+        if(self::getOSType()=='win'){
+            exec('taskkill /PID '.$pid.' /T'.($kill?' /F':''), $o, $res);
+            return ($res===0);
+        }
+        elseif(in_array(self::getOSType(),['mac','bsd','linux'])){
+            exec('kill '.($kill?'-9':'-15').' '.$pid, $o, $res);
+            return ($res===0);
         }
         else{
             return null;
