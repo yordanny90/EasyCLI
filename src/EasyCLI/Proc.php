@@ -19,7 +19,7 @@ class Proc{
     private $last_status=[];
     private $kill=false;
 
-    private function __construct($proc, string $outfile=null, string $errfile=null){
+    private function __construct($proc, ?string $outfile=null, ?string $errfile=null){
         $this->proc=$proc;
         $this->start=microtime(true);
         $this->status();
